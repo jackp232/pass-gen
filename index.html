@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Password Generator</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/websites/images/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/websites/images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/websites/images/favicon-16x16.png">
+  <link rel="manifest" href="/websites/manifest.json">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  
+  <!-- Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Custom Configuration & Styles -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            dark: '#0a0a0f',
+            card: 'rgba(20, 20, 30, 0.65)',
+            neon: {
+              cyan: '#00f3ff',
+              magenta: '#ff00ff',
+              green: '#00ff66',
+              red: '#ff003c',
+              yellow: '#ffea00'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background: radial-gradient(circle at top right, #1a1025, #050508 60%);
+      background-attachment: fixed;
+      color: #e2e8f0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Glassmorphism Card */
+    .glass-card {
+      background: var(--card, rgba(20, 20, 30, 0.65));
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 
+                  inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    /* Neon Button */
+    .neon-btn {
+      position: relative;
+      background: transparent;
+      color: #fff;
+      transition: all 0.3s ease;
+      overflow: hidden;
+      z-index: 1;
+    }
+    .neon-btn::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(45deg, #00f3ff, #ff00ff);
+      z-index: -1;
+      transition: opacity 0.3s ease;
+      opacity: 0.8;
+    }
+    .neon-btn:hover::before {
+      opacity: 1;
+    }
+    .neon-btn:hover {
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.5), 0 0 40px rgba(255, 0, 255, 0.3);
+      transform: translateY(-2px);
+    }
+    .neon-btn:active {
+      transform: translateY(1px);
+    }
+
+    /* Custom Toggle Switch */
+    .toggle-checkbox:checked {
+      right: 0;
+      border-color: #00ff66;
+    }
+    .toggle-checkbox:checked + .toggle-label {
+      background-color: rgba(0, 255, 102, 0.2);
+      border-color: #00ff66;
+      box-shadow: 0 0 10px rgba(0, 255, 102, 0.3);
+    }
+    .toggle-checkbox:checked + .toggle-label:after {
+      transform: translateX(100%);
+      background-color: #00ff66;
+      box-shadow: 0 0 8px #00ff66;
+    }
+    .toggle-label {
+      transition: all 0.3s ease;
+    }
+    .toggle-label:after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background-color: #9ca3af;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+    }
+
+    /* Custom Range Slider */
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: transparent;
+    }
+    input[type=range]:focus {
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 6px;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    input[type=range]::-webkit-slider-thumb {
+      height: 20px;
+      width: 20px;
+      border-radius: 50%;
+      background: #00f3ff;
+      cursor: pointer;
+      -webkit-appearance: none;
+      margin-top: -8px;
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.6);
+      transition: transform 0.1s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+    /* Firefox support for slider */
+    input[type=range]::-moz-range-track {
+      width: 100%;
+      height: 6px;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+    input[type=range]::-moz-range-thumb {
+      height: 20px;
+      width: 20px;
+      border-radius: 50%;
+      background: #00f3ff;
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.6);
+      border: none;
+    }
+
+    /* Password Output Field */
+    .password-display {
+      background: rgba(0, 0, 0, 0.4);
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    /* Toast Notification */
+    #toast {
+      visibility: hidden;
+      opacity: 0;
+      transform: translateY(20px) translateX(-50%);
+      transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+    #toast.show {
+      visibility: visible;
+      opacity: 1;
+      transform: translateY(0) translateX(-50%);
+    }
+
+    /* Scrollbar for history */
+    .history-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .history-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .history-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+    }
+    .history-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 243, 255, 0.5);
+    }
+    
+    .masked-password {
+      filter: blur(4px);
+      transition: filter 0.3s ease, color 0.3s ease;
+      cursor: pointer;
+    }
+    .masked-password:hover {
+      filter: blur(0px);
+      color: #00f3ff;
+    }
+  </style>
+</head>
+<body class="antialiased py-10 px-4 flex flex-col items-center justify-center font-sans">
+
+  <main class="w-full max-w-xl mx-auto flex flex-col gap-6 relative z-10">
+    
+    <!-- Header -->
+    <div class="text-center mb-2">
+      <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-white mb-2" style="text-shadow: 0 0 20px rgba(0, 243, 255, 0.3);">
+        Neon<span class="text-neon-cyan">Pass</span>
+      </h1>
+      <p class="text-gray-400 text-sm md:text-base">Ultra-secure, randomized password generator</p>
+    </div>
+
+    <!-- Main Card -->
+    <div class="glass-card rounded-2xl p-6 md:p-8">
+      
+      <!-- Output Area -->
+      <div class="relative flex items-center justify-between password-display rounded-xl p-4 mb-6 border border-white/5">
+        <input type="text" id="password-output" readonly 
+               class="bg-transparent w-full text-xl md:text-2xl font-mono text-white outline-none selection:bg-neon-magenta/30 truncate pr-4"
+               value="P@ssw0rd_Generat0r!">
+        
+        <div class="flex gap-2 shrink-0">
+          <button id="btn-toggle-vis" class="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-colors" title="Toggle Visibility">
+            <i class="ph ph-eye text-xl"></i>
+          </button>
+          <button id="btn-copy-main" class="p-2 rounded-lg bg-white/5 hover:bg-white/10 hover:text-neon-cyan text-gray-300 transition-colors" title="Copy Password">
+            <i class="ph ph-copy text-xl"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Strength Meter -->
+      <div class="mb-8">
+        <div class="flex justify-between items-end mb-2">
+          <span class="text-sm font-semibold uppercase tracking-wider text-gray-400">Strength</span>
+          <span id="strength-text" class="text-sm font-bold text-gray-300">Moderate</span>
+        </div>
+        <div class="flex gap-1.5 h-2 w-full">
+          <div class="strength-bar flex-1 rounded-full bg-white/10 transition-all duration-300"></div>
+          <div class="strength-bar flex-1 rounded-full bg-white/10 transition-all duration-300"></div>
+          <div class="strength-bar flex-1 rounded-full bg-white/10 transition-all duration-300"></div>
+          <div class="strength-bar flex-1 rounded-full bg-white/10 transition-all duration-300"></div>
+          <div class="strength-bar flex-1 rounded-full bg-white/10 transition-all duration-300"></div>
+        </div>
+        <p id="strength-feedback" class="text-xs text-gray-500 mt-2 h-4">Include more character types.</p>
+      </div>
+
+      <!-- Controls: Length -->
+      <div class="mb-6">
+        <div class="flex justify-between items-center mb-4">
+          <label class="text-sm font-semibold text-gray-300">Character Length</label>
+          <span id="length-val" class="text-2xl font-mono font-bold text-neon-cyan text-shadow-sm">16</span>
+        </div>
+        <input type="range" id="length-slider" min="4" max="64" value="16">
+      </div>
+
+      <!-- Controls: Toggles -->
+      <div class="space-y-4 mb-8">
+        
+        <!-- Toggle Item -->
+        <div class="flex items-center justify-between">
+          <label class="text-sm text-gray-300 cursor-pointer select-none" for="opt-upper">Uppercase Letters (A-Z)</label>
+          <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+            <input type="checkbox" name="toggle" id="opt-upper" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 top-0 left-0 m-0 opacity-0" checked/>
+            <label for="opt-upper" class="toggle-label block overflow-hidden h-6 rounded-full bg-white/20 cursor-pointer border border-white/10"></label>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <label class="text-sm text-gray-300 cursor-pointer select-none" for="opt-lower">Lowercase Letters (a-z)</label>
+          <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+            <input type="checkbox" name="toggle" id="opt-lower" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 top-0 left-0 m-0 opacity-0" checked/>
+            <label for="opt-lower" class="toggle-label block overflow-hidden h-6 rounded-full bg-white/20 cursor-pointer border border-white/10"></label>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <label class="text-sm text-gray-300 cursor-pointer select-none" for="opt-numbers">Numbers (0-9)</label>
+          <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+            <input type="checkbox" name="toggle" id="opt-numbers" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 top-0 left-0 m-0 opacity-0" checked/>
+            <label for="opt-numbers" class="toggle-label block overflow-hidden h-6 rounded-full bg-white/20 cursor-pointer border border-white/10"></label>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <label class="text-sm text-gray-300 cursor-pointer select-none" for="opt-symbols">Symbols (!@#$)</label>
+          <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+            <input type="checkbox" name="toggle" id="opt-symbols" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 top-0 left-0 m-0 opacity-0" checked/>
+            <label for="opt-symbols" class="toggle-label block overflow-hidden h-6 rounded-full bg-white/20 cursor-pointer border border-white/10"></label>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2 border-t border-white/10">
+          <div>
+            <label class="text-sm text-gray-300 cursor-pointer select-none block" for="opt-exclude">Exclude Similar</label>
+            <span class="text-xs text-gray-500">( i, l, 1, L, o, 0, O )</span>
+          </div>
+          <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+            <input type="checkbox" name="toggle" id="opt-exclude" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 top-0 left-0 m-0 opacity-0"/>
+            <label for="opt-exclude" class="toggle-label block overflow-hidden h-6 rounded-full bg-white/20 cursor-pointer border border-white/10"></label>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Generate Button -->
+      <button id="btn-generate" class="neon-btn w-full py-4 rounded-xl font-bold text-lg uppercase tracking-widest flex items-center justify-center gap-2">
+        <i class="ph-bold ph-arrows-clockwise text-xl"></i>
+        Generate Password
+      </button>
+
+    </div>
+
+    <!-- Password History -->
+    <div class="glass-card rounded-2xl p-6 mt-2">
+      <div class="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
+        <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+          <i class="ph ph-clock-counter-clockwise text-neon-magenta"></i>
+          History
+        </h2>
+        <button id="btn-clear-history" class="text-xs text-gray-400 hover:text-neon-red transition-colors flex items-center gap-1">
+          <i class="ph ph-trash"></i> Clear
+        </button>
+      </div>
+      
+      <div id="history-list" class="flex flex-col gap-2 max-h-48 overflow-y-auto history-scroll pr-2">
+        <!-- History items will be injected here by JS -->
+        <div class="text-center text-sm text-gray-500 py-4 italic" id="empty-history-msg">No passwords generated yet.</div>
+      </div>
+    </div>
+
+    <!-- Footer link -->
+    <div class="text-center mt-4">
+      <a href="https://www.nzaviation.github.io/websites" class="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors py-2 px-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/5">
+        <i class="ph ph-arrow-left"></i> Back to Websites
+      </a>
+    </div>
+
+  </main>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-8 left-1/2 flex items-center gap-3 bg-gray-900 border border-white/10 text-white px-6 py-3 rounded-full shadow-2xl z-50">
+    <div class="w-8 h-8 rounded-full bg-neon-green/20 flex items-center justify-center text-neon-green">
+      <i class="ph-bold ph-check"></i>
+    </div>
+    <span class="font-medium text-sm" id="toast-msg">Copied to clipboard!</span>
+  </div>
+
+  <script>
+    // --- DOM Elements ---
+    const dom = {
+      output: document.getElementById('password-output'),
+      slider: document.getElementById('length-slider'),
+      lengthVal: document.getElementById('length-val'),
+      btnGenerate: document.getElementById('btn-generate'),
+      btnCopy: document.getElementById('btn-copy-main'),
+      btnToggleVis: document.getElementById('btn-toggle-vis'),
+      btnClearHistory: document.getElementById('btn-clear-history'),
+      historyList: document.getElementById('history-list'),
+      emptyMsg: document.getElementById('empty-history-msg'),
+      toast: document.getElementById('toast'),
+      toastMsg: document.getElementById('toast-msg'),
+      strengthBars: document.querySelectorAll('.strength-bar'),
+      strengthText: document.getElementById('strength-text'),
+      strengthFeedback: document.getElementById('strength-feedback'),
+      
+      // Toggles
+      opts: {
+        upper: document.getElementById('opt-upper'),
+        lower: document.getElementById('opt-lower'),
+        numbers: document.getElementById('opt-numbers'),
+        symbols: document.getElementById('opt-symbols'),
+        exclude: document.getElementById('opt-exclude')
+      }
+    };
+
+    // --- State ---
+    let passwordHistory = [];
+    const MAX_HISTORY = 10;
+    
+    // Character Sets
+    const CHAR_SETS = {
+      upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+      lower: 'abcdefghijklmnopqrstuvwxyz',
+      numbers: '0123456789',
+      symbols: '!@#$%^&*()-_=+'
+    };
+
+    const SIMILAR_CHARS = /[il1Lo0O]/g;
+
+    // --- Core Functions ---
+    
+    // Generate the password based on selected options
+    function generatePassword() {
+      const length = parseInt(dom.slider.value);
+      let availableChars = '';
+      let typesCount = 0;
+      let guaranteedChars = [];
+
+      // Build character pool and ensure at least one of each selected type is included
+      Object.keys(CHAR_SETS).forEach(type => {
+        if (dom.opts[type] && dom.opts[type].checked) {
+          let pool = CHAR_SETS[type];
+          if (dom.opts.exclude.checked) {
+            pool = pool.replace(SIMILAR_CHARS, '');
+          }
+          if (pool.length > 0) {
+            availableChars += pool;
+            typesCount++;
+            // Grab one random char from this specific pool to guarantee inclusion
+            guaranteedChars.push(pool[Math.floor(Math.random() * pool.length)]);
+          }
+        }
+      });
+
+      if (availableChars.length === 0) {
+        showToast("Please select at least one character type!", "error");
+        dom.output.value = "";
+        updateStrength("", 0);
+        return;
+      }
+
+      let password = '';
+      
+      // Add guaranteed chars first
+      password += guaranteedChars.join('');
+
+      // Fill the rest randomly
+      for (let i = password.length; i < length; i++) {
+        const randomIndex = Math.floor(Math.random() * availableChars.length);
+        password += availableChars[randomIndex];
+      }
+
+      // Shuffle the final password so guaranteed chars aren't always at the start
+      password = password.split('').sort(() => 0.5 - Math.random()).join('');
+
+      dom.output.value = password;
+      
+      // Visual updates
+      updateStrength(password, typesCount);
+      addToHistory(password);
+    }
+
+    // Calculate and update strength UI
+    function updateStrength(password, typesCount) {
+      if (!password) {
+        renderStrengthUI(0, "None", "Select options to generate.");
+        return;
+      }
+
+      const length = password.length;
+      let score = 0;
+      let feedback = "";
+
+      // Base score on length
+      if (length > 4) score += 1;
+      if (length > 8) score += 1;
+      if (length >= 12) score += 1;
+      if (length >= 16) score += 1;
+
+      // Add score based on variety
+      if (typesCount === 2) score += 1;
+      if (typesCount === 3) score += 1;
+      if (typesCount === 4) score += 2;
+
+      // Penalties for poor combinations
+      if (length <= 6) score = 1; // Always very weak if too short
+      else if (typesCount === 1 && length < 12) score = Math.min(score, 1);
+
+      // Normalize to max 5 segments
+      let segments = Math.min(Math.max(score, 1), 5);
+      
+      let text = "";
+      let colorClass = "";
+
+      switch (segments) {
+        case 1:
+          text = "Very Weak";
+          feedback = "Way too short or simple.";
+          colorClass = "bg-neon-red";
+          break;
+        case 2:
+          text = "Weak";
+          feedback = "Try adding more length or symbols.";
+          colorClass = "bg-orange-500";
+          break;
+        case 3:
+          text = "Good";
+          feedback = "Decent, but could be longer.";
+          colorClass = "bg-neon-yellow";
+          break;
+        case 4:
+          text = "Strong";
+          feedback = "Solid password, hard to crack.";
+          colorClass = "bg-teal-400";
+          break;
+        case 5:
+          text = "Very Strong";
+          feedback = "Excellent! Bank-level security.";
+          colorClass = "bg-neon-green";
+          break;
+      }
+
+      if(typesCount === 4 && length >= 16) {
+        segments = 5;
+        text = "Unbreakable";
+        colorClass = "bg-neon-cyan";
+        feedback = "Perfection. Uncrackable.";
+      }
+
+      renderStrengthUI(segments, text, feedback, colorClass);
+    }
+
+    function renderStrengthUI(activeSegments, text, feedback, colorClass) {
+      dom.strengthText.textContent = text;
+      dom.strengthText.style.color = getComputedStyle(document.documentElement).getPropertyValue(`--tw-color-${colorClass.replace('bg-','')}`) || text === 'Unbreakable' ? '#00f3ff' : text === 'Very Strong' ? '#00ff66' : text === 'Good' ? '#ffea00' : text === 'Weak' ? '#f97316' : '#ff003c';
+      
+      dom.strengthFeedback.textContent = feedback;
+
+      dom.strengthBars.forEach((bar, index) => {
+        // Reset classes
+        bar.className = 'strength-bar flex-1 rounded-full transition-all duration-300';
+        
+        if (index < activeSegments) {
+          bar.classList.add(colorClass);
+          bar.classList.add('shadow-[0_0_8px_currentColor]');
+          if(colorClass === 'bg-neon-cyan') bar.style.boxShadow = '0 0 10px #00f3ff';
+          if(colorClass === 'bg-neon-green') bar.style.boxShadow = '0 0 10px #00ff66';
+          if(colorClass === 'bg-neon-red') bar.style.boxShadow = '0 0 10px #ff003c';
+          if(colorClass === 'bg-neon-yellow') bar.style.boxShadow = '0 0 10px #ffea00';
+        } else {
+          bar.classList.add('bg-white/10');
+          bar.style.boxShadow = 'none';
+        }
+      });
+    }
+
+    // Copy to Clipboard
+    async function copyToClipboard(textToCopy) {
+      if (!textToCopy) return;
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+        showToast("Copied to clipboard!");
+      } catch (err) {
+        // Fallback for older browsers/iframe issues
+        const textArea = document.createElement("textarea");
+        textArea.value = textToCopy;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          showToast("Copied to clipboard!");
+        } catch (err) {
+          showToast("Failed to copy", "error");
+        }
+        document.body.removeChild(textArea);
+      }
+    }
+
+    let toastTimeout;
+    function showToast(msg, type = "success") {
+      dom.toastMsg.textContent = msg;
+      
+      const icon = dom.toast.querySelector('i');
+      const iconContainer = icon.parentElement;
+      
+      if(type === 'error') {
+         icon.className = 'ph-bold ph-x text-neon-red';
+         iconContainer.className = 'w-8 h-8 rounded-full bg-neon-red/20 flex items-center justify-center';
+      } else {
+         icon.className = 'ph-bold ph-check text-neon-green';
+         iconContainer.className = 'w-8 h-8 rounded-full bg-neon-green/20 flex items-center justify-center';
+      }
+
+      dom.toast.classList.add('show');
+      
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        dom.toast.classList.remove('show');
+      }, 3000);
+    }
+
+    // Toggle main password visibility
+    function toggleVisibility() {
+      if (dom.output.type === 'text') {
+        dom.output.type = 'password';
+        dom.btnToggleVis.innerHTML = '<i class="ph ph-eye-slash text-xl"></i>';
+      } else {
+        dom.output.type = 'text';
+        dom.btnToggleVis.innerHTML = '<i class="ph ph-eye text-xl"></i>';
+      }
+    }
+
+    // History Management
+    function addToHistory(password) {
+      // Don't add if it's the exact same as the last one
+      if (passwordHistory.length > 0 && passwordHistory[0] === password) return;
+
+      passwordHistory.unshift(password);
+      if (passwordHistory.length > MAX_HISTORY) {
+        passwordHistory.pop();
+      }
+      renderHistory();
+    }
+
+    function renderHistory() {
+      dom.historyList.innerHTML = '';
+      
+      if (passwordHistory.length === 0) {
+        dom.emptyMsg.style.display = 'block';
+        dom.historyList.appendChild(dom.emptyMsg);
+        return;
+      }
+      
+      dom.emptyMsg.style.display = 'none';
+
+      passwordHistory.forEach((pw, index) => {
+        const item = document.createElement('div');
+        item.className = 'flex justify-between items-center p-3 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-colors group';
+        
+        const textSpan = document.createElement('span');
+        textSpan.className = 'font-mono text-sm tracking-widest masked-password text-gray-300 w-3/4 truncate';
+        textSpan.textContent = pw;
+        // Allows seeing it clearly on click for mobile users who can't hover
+        textSpan.addEventListener('mousedown', () => { textSpan.style.filter = 'blur(0px)'; textSpan.style.color='#00f3ff'; });
+        textSpan.addEventListener('mouseup', () => { textSpan.style.filter = ''; textSpan.style.color=''; });
+        textSpan.addEventListener('mouseleave', () => { textSpan.style.filter = ''; textSpan.style.color=''; });
+        textSpan.title = "Hover or Click to view";
+
+        const btnGroup = document.createElement('div');
+        btnGroup.className = 'flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity';
+        
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'text-gray-400 hover:text-neon-cyan transition-colors p-1';
+        copyBtn.innerHTML = '<i class="ph ph-copy"></i>';
+        copyBtn.title = 'Copy from history';
+        copyBtn.onclick = () => copyToClipboard(pw);
+
+        btnGroup.appendChild(copyBtn);
+        item.appendChild(textSpan);
+        item.appendChild(btnGroup);
+        
+        dom.historyList.appendChild(item);
+      });
+    }
+
+    function clearHistory() {
+      passwordHistory = [];
+      renderHistory();
+    }
+
+    // --- Event Listeners ---
+    
+    // Slider updates
+    dom.slider.addEventListener('input', (e) => {
+      dom.lengthVal.textContent = e.target.value;
+      // Change color of length text based on size for visual flair
+      const val = parseInt(e.target.value);
+      if(val < 8) dom.lengthVal.className = 'text-2xl font-mono font-bold text-neon-red text-shadow-sm';
+      else if(val < 12) dom.lengthVal.className = 'text-2xl font-mono font-bold text-neon-yellow text-shadow-sm';
+      else dom.lengthVal.className = 'text-2xl font-mono font-bold text-neon-cyan text-shadow-sm';
+      
+      // Auto-generate on slide for quick feedback
+      generatePassword();
+    });
+
+    // Option toggles - Auto generate when changed
+    Object.values(dom.opts).forEach(toggle => {
+      toggle.addEventListener('change', generatePassword);
+    });
+
+    dom.btnGenerate.addEventListener('click', generatePassword);
+    
+    dom.btnCopy.addEventListener('click', () => {
+      copyToClipboard(dom.output.value);
+    });
+
+    dom.btnToggleVis.addEventListener('click', toggleVisibility);
+    
+    dom.btnClearHistory.addEventListener('click', clearHistory);
+
+    // Initial Generation
+    window.addEventListener('DOMContentLoaded', () => {
+      generatePassword();
+    });
+
+  </script>
+</body>
+</html>
